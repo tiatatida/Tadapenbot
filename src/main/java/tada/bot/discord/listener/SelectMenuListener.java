@@ -11,8 +11,8 @@ public class SelectMenuListener extends ListenerAdapter {
     public void onStringSelectInteraction(@NotNull StringSelectInteractionEvent event) {
         String componentId = event.getComponentId();
 
-        if (componentId.startsWith("reportReason:")) {
-            ReportListener.handleReportReason(event);
+        if (componentId.startsWith("reportTopic:")) {
+            ReportListener.handleReportTopic(event);
         }
     }
 }

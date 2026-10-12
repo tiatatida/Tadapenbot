@@ -81,6 +81,17 @@ public class TicketRepository {
         }
     }
 
+    public static void setUnclaimed(long channelId) {
+        String sql = "UPDATE tickets SET status = 'OPEN', claimed_by = NULL WHERE channel_id = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, channelId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Failed to unclaim ticket for channel {}", channelId, e);
+        }
+    }
+
     public static void closeTicket(long channelId) {
         String sql = "UPDATE tickets SET status = 'CLOSED', closed_at = NOW() WHERE channel_id = ?";
         try (Connection conn = DatabaseManager.getConnection();

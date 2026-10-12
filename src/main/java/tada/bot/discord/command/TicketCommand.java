@@ -24,11 +24,6 @@ public class TicketCommand implements Command {
     }
 
     @Override
-    public String getDescription() {
-        return "เปิด ticket แจ้งเรื่อง ✨";
-    }
-
-    @Override
     public void executeSlash(SlashCommandInteractionEvent event) {
 
         if (event.getGuild() == null) {
@@ -50,16 +45,16 @@ public class TicketCommand implements Command {
     }
 
     private void openTicket(SlashCommandInteractionEvent event) {
-        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("Ticket.jpg");
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("Ticket.gif");
         if (inputStream == null) {
             event.reply("ไม่พบไฟล์รูปภาพ ticket โปรดติดต่อแอดมิน").setEphemeral(true).queue();
             return;
         }
-        FileUpload fileUpload = FileUpload.fromData(inputStream, "Ticket.jpg");
+        FileUpload fileUpload = FileUpload.fromData(inputStream, "Ticket.gif");
 
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("🚨 โปรดกดยืนยันหรือยกเลิกการเปิด Ticket 🎫");
-        embedBuilder.setImage("attachment://Ticket.jpg");
+        embedBuilder.setImage("attachment://Ticket.gif");
         embedBuilder.setColor(new Color(210, 15, 57));
         embedBuilder.setFooter("Powered by Tada ✨");
 
@@ -113,7 +108,6 @@ public class TicketCommand implements Command {
                             MessageEmbed messageEmbed = embedBuilder.build();
                             textChannel.sendMessageEmbeds(messageEmbed).queue();
                         },
-                        failure -> event.reply("เกิดปัญหาในการเพิ่มผู้ใช้").setEphemeral(true).queue()
-                );
+                        failure -> event.reply("เกิดปัญหาในการเพิ่มผู้ใช้").setEphemeral(true).queue());
     }
 }

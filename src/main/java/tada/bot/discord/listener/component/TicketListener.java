@@ -80,58 +80,77 @@ public class TicketListener {
                 .setThumbnail(member.getUser().getEffectiveAvatarUrl())
                 .setTimestamp(Instant.now());
 
-        Button claimButton = Button.success("ticketClaim", "รับเคส");
-        Button closeButton = Button.danger("ticketClose", "ปิด Ticket");
-
         channel.sendMessageEmbeds(embed.build())
-                .addComponents(ActionRow.of(claimButton, closeButton))
+                .addComponents(ticketControls(false))
                 .queue();
     }
 
+    private static ActionRow ticketControls(boolean claimed) {
+        return ActionRow.of(
+                Button.success("ticketClaim", claimed ? "รับเคสแล้ว" : "รับเคส").withDisabled(claimed),
+                Button.secondary("ticketUnclaim", "ยกเลิกรับเคส").withDisabled(!claimed),
+                Button.danger("ticketClose", "ปิด Ticket"));
+    }
+
+    private static boolean isStaff(Member member) {
+        return member.hasPermission(Permission.MANAGE_CHANNEL) || member.hasPermission(Permission.ADMINISTRATOR);
+    }
+
     public static void handleTicketClaim(ButtonInteractionEvent event, Guild guild, Member staff) {
-        if (!staff.hasPermission(Permission.MANAGE_CHANNEL) && !staff.hasPermission(Permission.ADMINISTRATOR)) {
+        if (!isStaff(staff)) {
             event.reply("กดได้แค่เฉพาะแอดมินเท่านั้นนะครับ").setEphemeral(true).queue();
             return;
         }
 
-        long channelId = event.getChannel().getIdLong();
-        TicketRepository.setClaimed(channelId, staff.getIdLong());
-
+        TicketRepository.setClaimed(event.getChannel().getIdLong(), staff.getIdLong());
         event.deferEdit().queue();
-
-        List<Button> updatedButtons = event.getMessage().getComponentTree()
-                .findAll(Button.class).stream()
-                .map(b -> b.getCustomId() != null && b.getCustomId().equals("ticketClaim")
-                        ? Button.success("ticketClaim", "รับเคสแล้ว")
-                        : b)
-                .collect(Collectors.toList());
-
-        event.getHook().editOriginalComponents(ActionRow.of(updatedButtons)).queue();
-
-        var originalEmbed = event.getMessage().getEmbeds().get(0);
-        EmbedBuilder updatedEmbed = new EmbedBuilder(originalEmbed)
-                .clearFields()
-                .addField("เปิดโดย", originalEmbed.getFields().get(0).getValue(), true)
-                .addField("สถานะ", "รับเคสโดย " + staff.getAsMention(), true)
-                .setColor(new Color(64, 160, 43));
-
-        event.getHook().editOriginalEmbeds(updatedEmbed.build()).queue();
+        updateTicketMessage(event, staff);
 
         var channel = event.getChannel().asTextChannel();
-        String currentName = channel.getName();
-        String baseName = currentName.replaceAll("[\\s\\p{So}\\p{Cn}]+$", "");
-        channel.getManager().setName(baseName + "💬").queue();
+        renameChannel(channel, "💬");
 
         EmbedBuilder claimNoticeEmbed = new EmbedBuilder();
         claimNoticeEmbed.setTitle("แอดมินมารับเคสแล้วครับ ✨");
         claimNoticeEmbed.setDescription(staff.getAsMention());
         claimNoticeEmbed.setColor(new Color(136, 57, 239));
-        if (originalEmbed.getThumbnail() != null) {
-            claimNoticeEmbed.setThumbnail(originalEmbed.getThumbnail().getUrl());
+        var thumbnail = event.getMessage().getEmbeds().get(0).getThumbnail();
+        if (thumbnail != null) {
+            claimNoticeEmbed.setThumbnail(thumbnail.getUrl());
         }
         claimNoticeEmbed.setTimestamp(Instant.now());
 
         channel.sendMessageEmbeds(claimNoticeEmbed.build()).queue();
+    }
+
+    public static void handleTicketUnclaim(ButtonInteractionEvent event, Guild guild, Member staff) {
+        if (!isStaff(staff)) {
+            event.reply("กดได้แค่เฉพาะแอดมินเท่านั้นนะครับ").setEphemeral(true).queue();
+            return;
+        }
+
+        TicketRepository.setUnclaimed(event.getChannel().getIdLong());
+        event.deferEdit().queue();
+        updateTicketMessage(event, null);
+        renameChannel(event.getChannel().asTextChannel(), "🚨");
+    }
+
+    private static void updateTicketMessage(ButtonInteractionEvent event, Member staff) {
+        boolean claimed = staff != null;
+        var originalEmbed = event.getMessage().getEmbeds().get(0);
+        EmbedBuilder updatedEmbed = new EmbedBuilder(originalEmbed)
+                .clearFields()
+                .addField("เปิดโดย", originalEmbed.getFields().get(0).getValue(), true)
+                .addField("สถานะ", claimed ? "รับเคสโดย " + staff.getAsMention() : "ยังไม่มีคนรับเคส", true)
+                .setColor(claimed ? new Color(64, 160, 43) : new Color(92, 95, 119));
+
+        event.getHook().editOriginalEmbeds(updatedEmbed.build())
+                .setComponents(ticketControls(claimed))
+                .queue();
+    }
+
+    private static void renameChannel(TextChannel channel, String statusSuffix) {
+        String baseName = channel.getName().replaceAll("[\\s\\p{So}\\p{Cn}]+$", "");
+        channel.getManager().setName(baseName + statusSuffix).queue();
     }
 
     public static void handleTicketClose(ButtonInteractionEvent event) {
@@ -140,8 +159,7 @@ public class TicketListener {
         Member caller = event.getMember();
 
         boolean isOwner = TicketRepository.isOwner(channelId, callerId);
-        boolean isStaff = caller != null &&
-                (caller.hasPermission(Permission.MANAGE_CHANNEL) || caller.hasPermission(Permission.ADMINISTRATOR));
+        boolean isStaff = caller != null && isStaff(caller);
 
         if (!isOwner && !isStaff) {
             event.reply("คุณไม่มีสิทธิ์ปิด ticket นี้ครับ (ต้องเป็นเจ้าของ ticket หรือแอดมินเท่านั้น)")

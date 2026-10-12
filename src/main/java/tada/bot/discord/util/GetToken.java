@@ -26,6 +26,11 @@ public class GetToken {
     }
 
     public static String getToken() {
-        return properties.getProperty("Token");
+        return get("DISCORD_TOKEN", "Token");
+    }
+
+    public static String get(String envName, String propKey) {
+        String v = System.getenv(envName);
+        return v != null && !v.isBlank() ? v : properties.getProperty(propKey);
     }
 }

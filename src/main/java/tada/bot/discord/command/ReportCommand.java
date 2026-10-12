@@ -1,5 +1,6 @@
 package tada.bot.discord.command;
 
+import tada.bot.discord.util.TimeUtil;
 import tada.bot.discord.database.GuildSettingsRepository;
 import tada.bot.discord.database.ReportRepository;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -11,18 +12,12 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import java.awt.*;
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class ReportCommand implements Command {
     @Override
     public String getName() {
         return "report";
-    }
-
-    @Override
-    public String getDescription() {
-        return "รายงานผู้ใช้ ✨";
     }
 
     @Override
@@ -61,7 +56,7 @@ public class ReportCommand implements Command {
 
         LocalDateTime recentReport = ReportRepository.getRecentReportTime(guildId, reporterId, target.getIdLong());
         if (recentReport != null) {
-            String remaining = formatRemaining(recentReport);
+            String remaining = TimeUtil.formatRemaining(recentReport);
             event.reply("คุณรายงาน " + target.getName() + " ไปแล้วภายใน 24 ชม.ที่ผ่านมาครับ\n" +
                             "⏳ โปรดรออีก " + remaining + " ก่อนรายงานซ้ำ")
                     .setEphemeral(true).queue();
@@ -70,14 +65,14 @@ public class ReportCommand implements Command {
 
         EmbedBuilder embedBuilder = new EmbedBuilder();
         embedBuilder.setTitle("🚨 รายงานผู้ใช้ " + target.getName());
-        embedBuilder.setDescription("โปรดเลือกเหตุผลในการรายงานจากเมนูด้านล่างนี้ครับ");
+        embedBuilder.setDescription("โปรดเลือกหัวข้อในการรายงานจากเมนูด้านล่างนี้ครับ");
         embedBuilder.setColor(new Color(210, 15, 57));
         embedBuilder.setThumbnail(target.getEffectiveAvatarUrl());
 
         MessageEmbed messageEmbed = embedBuilder.build();
 
-        StringSelectMenu reasonMenu = StringSelectMenu.create("reportReason:" + target.getIdLong())
-                .setPlaceholder("เลือกเหตุผลในการรายงาน")
+        StringSelectMenu topicMenu = StringSelectMenu.create("reportTopic:" + target.getIdLong())
+                .setPlaceholder("เลือกหัวข้อในการรายงาน")
                 .addOption("สแปม / โฆษณา", "spam", "ส่งข้อความซ้ำๆ หรือโฆษณาที่ไม่เกี่ยวข้อง")
                 .addOption("คำพูดหยาบคาย / สร้างความไม่สบายใจ", "harassment", "ใช้ถ้อยคำหยาบคายหรือสร้างความไม่สบายใจต่อผู้อื่น")
                 .addOption("เนื้อหาไม่เหมาะสม", "inappropriate", "ส่งภาพหรือข้อความที่ไม่เหมาะสม")
@@ -86,20 +81,8 @@ public class ReportCommand implements Command {
                 .build();
 
         event.replyEmbeds(messageEmbed)
-                .addComponents(ActionRow.of(reasonMenu))
+                .addComponents(ActionRow.of(topicMenu))
                 .setEphemeral(true).queue();
     }
 
-    private String formatRemaining(LocalDateTime lastReportTime) {
-        Duration remaining = Duration.between(LocalDateTime.now(), lastReportTime.plusHours(24));
-        if (remaining.isNegative()) return "ไม่กี่นาที";
-
-        long hours = remaining.toHours();
-        long minutes = remaining.toMinutesPart();
-
-        if (hours > 0) {
-            return hours + " ชม. " + minutes + " นาที";
-        }
-        return minutes + " นาที";
-    }
 }

@@ -67,7 +67,7 @@ public class DailyRepository {
                 LocalDate today = LocalDate.now();
                 if (lastCheckin != null && lastCheckin.isEqual(today)) {
                     conn.rollback();
-                    return null;
+                    return new DailyStatus(currentStreak, longestStreak, true);
                 }
 
                 if (lastCheckin != null && lastCheckin.isEqual(today.minusDays(1))) {

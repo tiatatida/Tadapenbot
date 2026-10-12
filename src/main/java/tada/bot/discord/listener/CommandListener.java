@@ -23,6 +23,7 @@ public class CommandListener extends ListenerAdapter {
         commands.put("report", new ReportCommand());
         commands.put("tada", new TadaCommand());
         commands.put("review", new ReviewCommand());
+        commands.put("voice", new VoiceCommand());
         logger.info("Registered {} commands", commands.size());
     }
 
@@ -40,7 +41,14 @@ public class CommandListener extends ListenerAdapter {
 
         if (command != null) {
             logger.debug("Executing slash command: {} from user: {}", commandName, event.getUser().getName());
-            command.executeSlash(event);
+            try {
+                command.executeSlash(event);
+            } catch (Exception e) {
+                logger.error("Command {} failed", commandName, e);
+                String msg = "เกิดข้อผิดพลาด โปรดลองใหม่อีกครั้งครับ";
+                if (event.isAcknowledged()) event.getHook().sendMessage(msg).setEphemeral(true).queue();
+                else event.reply(msg).setEphemeral(true).queue();
+            }
         } else {
             logger.warn("Unknown slash command: {} from user: {}", commandName, event.getUser().getName());
             event.reply("Unknown command!").setEphemeral(true).queue();

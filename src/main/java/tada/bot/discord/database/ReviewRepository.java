@@ -83,7 +83,6 @@ public class ReviewRepository {
         double remainder = average - fullStars;
         boolean hasHalfStar = remainder >= 0.5;
 
-        // กันเผื่อ edge case ค่าเฉลี่ยเป็น 5.0 พอดี ไม่ให้เกิน 5 ดวง
         if (fullStars >= 5) {
             fullStars = 5;
             hasHalfStar = false;

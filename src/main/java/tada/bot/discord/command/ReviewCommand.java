@@ -1,5 +1,6 @@
 package tada.bot.discord.command;
 
+import tada.bot.discord.util.TimeUtil;
 import tada.bot.discord.database.ReviewRepository;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -8,18 +9,12 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import java.awt.*;
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class ReviewCommand implements Command {
     @Override
     public String getName() {
         return "review";
-    }
-
-    @Override
-    public String getDescription() {
-        return "ให้คะแนนรีวิวผู้ใช้ ✨";
     }
 
     @Override
@@ -61,7 +56,7 @@ public class ReviewCommand implements Command {
 
         LocalDateTime recentReview = ReviewRepository.getRecentReviewTime(guildId, reviewerId, reviewedId);
         if (recentReview != null) {
-            String remaining = formatRemaining(recentReview);
+            String remaining = TimeUtil.formatRemaining(recentReview);
             event.reply("คุณรีวิว " + target.getName() + " ไปแล้วภายใน 24 ชม.ที่ผ่านมาครับ\n" +
                             "⏳ โปรดรออีก " + remaining + " ก่อนแก้ไขคะแนนอีกครั้ง")
                     .setEphemeral(true).queue();
@@ -83,16 +78,4 @@ public class ReviewCommand implements Command {
         event.replyEmbeds(messageEmbed).setEphemeral(true).queue();
     }
 
-    private String formatRemaining(LocalDateTime lastReviewTime) {
-        Duration remaining = Duration.between(LocalDateTime.now(), lastReviewTime.plusHours(24));
-        if (remaining.isNegative()) return "ไม่กี่นาที";
-
-        long hours = remaining.toHours();
-        long minutes = remaining.toMinutesPart();
-
-        if (hours > 0) {
-            return hours + " ชม. " + minutes + " นาที";
-        }
-        return minutes + " นาที";
-    }
 }

@@ -16,17 +16,20 @@ public class ReportRepository {
 
     public record ReportEntry(long reporterId, long reportedId, String reason, LocalDateTime createdAt) {}
 
-    public static void insertReport(long guildId, long reporterId, long reportedId, String reason) {
-        String sql = "INSERT INTO reports (guild_id, reporter_id, reported_id, reason) VALUES (?, ?, ?, ?)";
+    public static boolean insertReport(long guildId, long reporterId, long reportedId, String topic, String reason) {
+        String sql = "INSERT INTO reports (guild_id, reporter_id, reported_id, topic, reason) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, guildId);
             ps.setLong(2, reporterId);
             ps.setLong(3, reportedId);
-            ps.setString(4, reason);
+            ps.setString(4, topic);
+            ps.setString(5, reason);
             ps.executeUpdate();
+            return true;
         } catch (SQLException e) {
             logger.error("Failed to insert report", e);
+            return false;
         }
     }
 

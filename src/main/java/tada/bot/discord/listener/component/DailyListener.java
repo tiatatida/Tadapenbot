@@ -16,6 +16,10 @@ public class DailyListener {
         DailyRepository.DailyStatus result = DailyRepository.checkIn(userId, guildId);
 
         if (result == null) {
+            event.reply("เกิดข้อผิดพลาด โปรดลองใหม่อีกครั้งครับ").setEphemeral(true).queue();
+            return;
+        }
+        if (result.alreadyCheckedInToday()) {
             event.reply("คุณเช็คอินวันนี้ไปแล้วครับ").setEphemeral(true).queue();
             return;
         }

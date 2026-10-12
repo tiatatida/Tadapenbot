@@ -17,11 +17,6 @@ public class InfoCommand implements Command {
     }
 
     @Override
-    public String getDescription() {
-        return "แสดงข้อมูลผู้ใช้ ✨";
-    }
-
-    @Override
     public void executeSlash(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) {
             event.reply("คำสั่งนี้ใช้ได้เฉพาะในเซิร์ฟเวอร์เท่านั้นครับ").setEphemeral(true).queue();

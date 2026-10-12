@@ -1,3 +1,5 @@
-docker-compose.yml
 target/*
 src/main/resources/*
+docker-compose.yml
+Dockerfile
+.env
