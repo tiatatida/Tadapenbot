@@ -14,9 +14,13 @@ import java.awt.Color;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class TicketListener {
+
+    private static final Set<Long> OPENING = ConcurrentHashMap.newKeySet();
 
     public static void handleTicketConfirmCancel(ButtonInteractionEvent event, Guild guild, Member member, String componentId) {
 
@@ -44,10 +48,17 @@ public class TicketListener {
     }
 
     private static void createTicketChannel(ButtonInteractionEvent event, Guild guild, Member member) {
-        Long existingChannelId = TicketRepository.getOpenTicketChannelId(guild.getIdLong(), member.getIdLong());
+        long userId = member.getIdLong();
+        if (!OPENING.add(userId)) {
+            event.getHook().sendMessage("กำลังเปิด ticket อยู่ครับ ✨").setEphemeral(true).queue();
+            return;
+        }
+
+        Long existingChannelId = TicketRepository.getOpenTicketChannelId(guild.getIdLong(), userId);
         if (existingChannelId != null) {
             TextChannel existingChannel = guild.getTextChannelById(existingChannelId);
             if (existingChannel != null) {
+                OPENING.remove(userId);
                 event.getHook().sendMessage("คุณมี ticket ที่ยังเปิดอยู่แล้วครับ ✨ " + existingChannel.getAsMention())
                         .setEphemeral(true).queue();
                 return;
@@ -60,11 +71,19 @@ public class TicketListener {
                 .addPermissionOverride(member, EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND), null)
                 .addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL))
                 .queue(channel -> {
-                    TicketRepository.insertTicket(channel.getIdLong(), guild.getIdLong(), member.getIdLong());
+                    boolean saved = TicketRepository.insertTicket(channel.getIdLong(), guild.getIdLong(), member.getIdLong());
+                    OPENING.remove(userId);
+                    if (!saved) {
+                        channel.delete().queue();
+                        event.getHook().sendMessage("เกิดปัญหาในการเปิด ticket โปรดติดต่อแอดมิน")
+                                .setEphemeral(true).queue();
+                        return;
+                    }
                     event.getHook().sendMessage("เปิด ticket เรียบร้อยครับ ✨ " + channel.getAsMention())
                             .setEphemeral(true).queue();
                     sendTicketWelcomeEmbed(channel, member);
                 }, throwable -> {
+                    OPENING.remove(userId);
                     event.getHook().sendMessage("เกิดปัญหาในการเปิด ticket โปรดติดต่อแอดมิน")
                             .setEphemeral(true).queue();
                 });

@@ -32,6 +32,14 @@ public class VoiceRoomUI {
     public static final String PERMIT_MODAL_PREFIX = "voicePermitModal:";
     public static final String KICK_MODAL_PREFIX = "voiceKickModal:";
 
+    public static long parseChannelId(String componentId, String prefix) {
+        try {
+            return Long.parseLong(componentId.substring(prefix.length()));
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
     public static boolean isLocked(VoiceChannel channel) {
         Role publicRole = channel.getGuild().getPublicRole();
         PermissionOverride override = channel.getPermissionOverride(publicRole);

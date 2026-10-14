@@ -11,10 +11,6 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import java.awt.*;
 
 public class InfoCommand implements Command {
-    @Override
-    public String getName() {
-        return "info";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {

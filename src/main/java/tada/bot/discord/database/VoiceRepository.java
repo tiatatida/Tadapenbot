@@ -38,7 +38,7 @@ public class VoiceRepository {
         return new ArrayList<>(tempIds);
     }
 
-    public static void setHubChannel(long guildId, long channelId) {
+    public static boolean setHubChannel(long guildId, long channelId) {
         String sql = """
                 INSERT INTO voice_hub (guild_id, channel_id)
                 VALUES (?, ?)
@@ -51,8 +51,10 @@ public class VoiceRepository {
             ps.setLong(3, channelId);
             ps.executeUpdate();
             hubs.put(guildId, channelId);
+            return true;
         } catch (SQLException e) {
             logger.error("Failed to set voice hub channel for guild {}", guildId, e);
+            return false;
         }
     }
 
@@ -120,15 +122,17 @@ public class VoiceRepository {
         }
     }
 
-    public static void updateOwner(long channelId, long newOwnerId) {
-        String sql = "UPDATE temp_voice_channels SET owner_id = ? WHERE channel_id = ?";
+    public static boolean transferOwner(long channelId, Long expectedOwnerId, long newOwnerId) {
+        String sql = "UPDATE temp_voice_channels SET owner_id = ? WHERE channel_id = ? AND owner_id = ?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, newOwnerId);
             ps.setLong(2, channelId);
-            ps.executeUpdate();
+            ps.setObject(3, expectedOwnerId);
+            return ps.executeUpdate() == 1;
         } catch (SQLException e) {
-            logger.error("Failed to update owner of temp voice channel {}", channelId, e);
+            logger.error("Failed to transfer owner of temp voice channel {}", channelId, e);
+            return false;
         }
     }
 

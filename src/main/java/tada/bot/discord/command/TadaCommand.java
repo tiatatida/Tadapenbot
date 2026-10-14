@@ -29,10 +29,6 @@ public class TadaCommand implements Command {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm");
 
-    @Override
-    public String getName() {
-        return "tada";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {
@@ -82,7 +78,10 @@ public class TadaCommand implements Command {
             return;
         }
 
-        GuildSettingsRepository.setReportChannel(guild.getIdLong(), targetChannel.getIdLong());
+        if (!GuildSettingsRepository.setReportChannel(guild.getIdLong(), targetChannel.getIdLong())) {
+            event.reply("บันทึกการตั้งค่าไม่สำเร็จ โปรดลองใหม่อีกครั้งครับ").setEphemeral(true).queue();
+            return;
+        }
 
         event.reply("ตั้งค่าห้องรับรายงานเป็น " + targetChannel.getAsMention() + " เรียบร้อยครับ ✨")
                 .setEphemeral(true).queue();
@@ -136,7 +135,10 @@ public class TadaCommand implements Command {
             return;
         }
 
-        VoiceRepository.setHubChannel(guild.getIdLong(), channel.getIdLong());
+        if (!VoiceRepository.setHubChannel(guild.getIdLong(), channel.getIdLong())) {
+            event.reply("บันทึกการตั้งค่าไม่สำเร็จ โปรดลองใหม่อีกครั้งครับ").setEphemeral(true).queue();
+            return;
+        }
 
         event.reply("ตั้งค่าห้อง " + channel.getAsMention()
                 + " เป็นห้องสร้างห้องเสียงอัตโนมัติเรียบร้อยครับ ✨")
@@ -300,10 +302,16 @@ public class TadaCommand implements Command {
         event.replyEmbeds(embedBuilder.build()).setEphemeral(true).queue();
     }
 
+    private static final String TRUNCATE_NOTE = "\n...(ดูเพิ่มเติมได้จาก database)";
+
     private String truncate(String text) {
-        if (text.length() > 1000) {
-            return text.substring(0, 1000) + "\n...(ดูเพิ่มเติมได้จาก database)";
+        if (text.length() <= 1024) {
+            return text;
         }
-        return text;
+        int limit = 1024 - TRUNCATE_NOTE.length();
+        if (Character.isHighSurrogate(text.charAt(limit - 1))) {
+            limit--;
+        }
+        return text.substring(0, limit) + TRUNCATE_NOTE;
     }
 }

@@ -14,7 +14,7 @@ public class ReviewRepository {
 
     public record ReviewStats(double averageRating, int reviewCount) {}
 
-    public static void upsertReview(long guildId, long reviewerId, long reviewedId, int rating) {
+    public static boolean upsertReview(long guildId, long reviewerId, long reviewedId, int rating) {
         String sql = """
                 INSERT INTO reviews (guild_id, reviewer_id, reviewed_id, rating)
                 VALUES (?, ?, ?, ?)
@@ -28,8 +28,10 @@ public class ReviewRepository {
             ps.setInt(4, rating);
             ps.setInt(5, rating);
             ps.executeUpdate();
+            return true;
         } catch (SQLException e) {
             logger.error("Failed to upsert review", e);
+            return false;
         }
     }
 

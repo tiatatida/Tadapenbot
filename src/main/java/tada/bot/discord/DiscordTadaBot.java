@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.TimeZone;
+import java.util.concurrent.Executors;
 
 public class DiscordTadaBot {
 
@@ -45,6 +46,7 @@ public class DiscordTadaBot {
             Runtime.getRuntime().addShutdownHook(new Thread(DatabaseManager::shutdown));
 
             jda = JDABuilder.createDefault(Token)
+                    .setEventPool(Executors.newScheduledThreadPool(8))
                     .addEventListeners(new CommandListener())
                     .addEventListeners(new ButtonListener())
                     .addEventListeners(new SelectMenuListener())

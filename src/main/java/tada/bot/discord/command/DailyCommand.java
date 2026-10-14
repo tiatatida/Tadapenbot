@@ -10,10 +10,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import java.awt.*;
 
 public class DailyCommand implements Command {
-    @Override
-    public String getName() {
-        return "daily";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {

@@ -5,17 +5,12 @@ import tada.bot.discord.util.VoiceActions;
 import tada.bot.discord.util.VoiceRoomUI;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 public class VoiceCommand implements Command {
 
-    @Override
-    public String getName() {
-        return "voice";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {
@@ -36,12 +31,18 @@ public class VoiceCommand implements Command {
         switch (subcommand) {
             case "rename" -> rename(event);
             case "limit" -> limit(event);
-            case "lock" -> lock(event);
-            case "unlock" -> unlock(event);
+            case "lock" -> setPublicAccess(event, Permission.VOICE_CONNECT, true,
+                    "🔒 ล็อกห้องเรียบร้อยครับ คนอื่นจะเข้าห้องนี้ไม่ได้แล้ว",
+                    "เกิดข้อผิดพลาดในการล็อกห้องครับ");
+            case "unlock" -> setPublicAccess(event, Permission.VOICE_CONNECT, false,
+                    "🔓 ปลดล็อกห้องเรียบร้อยครับ", "เกิดข้อผิดพลาดในการปลดล็อกห้องครับ");
             case "permit" -> permit(event);
             case "kick" -> kick(event);
-            case "ghost" -> ghost(event);
-            case "unghost" -> unghost(event);
+            case "ghost" -> setPublicAccess(event, Permission.VIEW_CHANNEL, true,
+                    "👻 ซ่อนห้องเรียบร้อยครับ คนที่ไม่ได้อยู่ในห้องจะมองไม่เห็นห้องนี้",
+                    "เกิดข้อผิดพลาดในการซ่อนห้องครับ");
+            case "unghost" -> setPublicAccess(event, Permission.VIEW_CHANNEL, false,
+                    "👀 เลิกซ่อนห้องเรียบร้อยครับ", "เกิดข้อผิดพลาดในการเลิกซ่อนห้องครับ");
             case "claim" -> claim(event);
             default -> event.getHook().editOriginal("ไม่รู้จักคำสั่งนี้").queue();
         }
@@ -84,38 +85,6 @@ public class VoiceCommand implements Command {
         VoiceActions.limit(event, voiceChannel, amount);
     }
 
-    private void lock(SlashCommandInteractionEvent event) {
-        VoiceChannel voiceChannel = getOwnedVoiceChannel(event);
-        if (voiceChannel == null)
-            return;
-
-        Role publicRole = voiceChannel.getGuild().getPublicRole();
-        voiceChannel.upsertPermissionOverride(publicRole)
-                .deny(Permission.VOICE_CONNECT)
-                .queue(
-                        success -> {
-                            VoiceRoomUI.refreshMessage(voiceChannel);
-                            event.getHook().editOriginal("🔒 ล็อกห้องเรียบร้อยครับ คนอื่นจะเข้าห้องนี้ไม่ได้แล้ว").queue();
-                        },
-                        failure -> event.getHook().editOriginal("เกิดข้อผิดพลาดในการล็อกห้องครับ").queue());
-    }
-
-    private void unlock(SlashCommandInteractionEvent event) {
-        VoiceChannel voiceChannel = getOwnedVoiceChannel(event);
-        if (voiceChannel == null)
-            return;
-
-        Role publicRole = voiceChannel.getGuild().getPublicRole();
-        voiceChannel.upsertPermissionOverride(publicRole)
-                .clear(Permission.VOICE_CONNECT)
-                .queue(
-                        success -> {
-                            VoiceRoomUI.refreshMessage(voiceChannel);
-                            event.getHook().editOriginal("🔓 ปลดล็อกห้องเรียบร้อยครับ").queue();
-                        },
-                        failure -> event.getHook().editOriginal("เกิดข้อผิดพลาดในการปลดล็อกห้องครับ").queue());
-    }
-
     private void permit(SlashCommandInteractionEvent event) {
         VoiceChannel voiceChannel = getOwnedVoiceChannel(event);
         if (voiceChannel == null)
@@ -134,37 +103,18 @@ public class VoiceCommand implements Command {
         VoiceActions.kick(event, voiceChannel, target, event.getUser().getIdLong());
     }
 
-    private void ghost(SlashCommandInteractionEvent event) {
+    private void setPublicAccess(SlashCommandInteractionEvent event, Permission perm, boolean deny,
+            String okText, String failText) {
         VoiceChannel voiceChannel = getOwnedVoiceChannel(event);
         if (voiceChannel == null)
             return;
 
-        Role publicRole = voiceChannel.getGuild().getPublicRole();
-        voiceChannel.upsertPermissionOverride(publicRole)
-                .deny(Permission.VIEW_CHANNEL)
-                .queue(
-                        success -> {
-                            VoiceRoomUI.refreshMessage(voiceChannel);
-                            event.getHook().editOriginal("👻 ซ่อนห้องเรียบร้อยครับ คนที่ไม่ได้อยู่ในห้องจะมองไม่เห็นห้องนี้")
-                                    .queue();
-                        },
-                        failure -> event.getHook().editOriginal("เกิดข้อผิดพลาดในการซ่อนห้องครับ").queue());
-    }
-
-    private void unghost(SlashCommandInteractionEvent event) {
-        VoiceChannel voiceChannel = getOwnedVoiceChannel(event);
-        if (voiceChannel == null)
-            return;
-
-        Role publicRole = voiceChannel.getGuild().getPublicRole();
-        voiceChannel.upsertPermissionOverride(publicRole)
-                .clear(Permission.VIEW_CHANNEL)
-                .queue(
-                        success -> {
-                            VoiceRoomUI.refreshMessage(voiceChannel);
-                            event.getHook().editOriginal("👀 เลิกซ่อนห้องเรียบร้อยครับ").queue();
-                        },
-                        failure -> event.getHook().editOriginal("เกิดข้อผิดพลาดในการเลิกซ่อนห้องครับ").queue());
+        VoiceActions.publicAccess(voiceChannel, perm, deny).queue(
+                success -> {
+                    VoiceRoomUI.refreshMessage(voiceChannel);
+                    event.getHook().editOriginal(okText).queue();
+                },
+                failure -> event.getHook().editOriginal(failText).queue());
     }
 
     private void claim(SlashCommandInteractionEvent event) {

@@ -18,10 +18,6 @@ import java.time.Instant;
 import java.util.EnumSet;
 
 public class TicketCommand implements Command {
-    @Override
-    public String getName() {
-        return "ticket";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {

@@ -7,10 +7,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import java.awt.*;
 
 public class HelpCommand implements Command {
-    @Override
-    public String getName() {
-        return "help";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {

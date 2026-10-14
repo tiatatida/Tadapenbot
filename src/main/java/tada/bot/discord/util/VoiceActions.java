@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
+import net.dv8tion.jda.api.requests.restaction.PermissionOverrideAction;
 
 import java.util.EnumSet;
 import java.util.Map;
@@ -25,13 +26,18 @@ public class VoiceActions {
     private VoiceActions() {
     }
 
+    public static PermissionOverrideAction publicAccess(VoiceChannel voiceChannel, Permission perm, boolean deny) {
+        var action = voiceChannel.upsertPermissionOverride(voiceChannel.getGuild().getPublicRole());
+        return deny ? action.deny(perm) : action.clear(perm);
+    }
+
     public static void rename(IReplyCallback event, VoiceChannel voiceChannel, long actorId, String newNameRaw) {
         if (newNameRaw == null || newNameRaw.isBlank()) {
             event.getHook().editOriginal("โปรดระบุชื่อห้องใหม่ครับ").queue();
             return;
         }
 
-        String newName = newNameRaw.length() > 100 ? newNameRaw.substring(0, 100) : newNameRaw;
+        String newName = NameUtil.limit100(newNameRaw);
 
         long now = System.currentTimeMillis();
         Long last = LAST_RENAME.get(voiceChannel.getIdLong());
@@ -151,7 +157,11 @@ public class VoiceActions {
 
         voiceChannel.upsertPermissionOverride(member).grant(OWNER_PERMS).queue(
                 success -> {
-                    VoiceRepository.updateOwner(channelId, member.getIdLong());
+                    if (!VoiceRepository.transferOwner(channelId, currentOwnerId, member.getIdLong())) {
+                        voiceChannel.upsertPermissionOverride(member).clear(OWNER_PERMS).queue(s -> { }, f -> { });
+                        event.getHook().editOriginal("มีคนรับสิทธิ์เจ้าของห้องก่อนคุณแล้วครับ").queue();
+                        return;
+                    }
                     if (currentOwnerId != null) {
                         voiceChannel.getMemberPermissionOverrides().stream()
                                 .filter(o -> o.getIdLong() == currentOwnerId)

@@ -1,6 +1,7 @@
 package tada.bot.discord.listener;
 
 import tada.bot.discord.database.VoiceRepository;
+import tada.bot.discord.util.NameUtil;
 import tada.bot.discord.util.VoiceActions;
 import tada.bot.discord.util.VoiceRoomUI;
 import net.dv8tion.jda.api.JDA;
@@ -53,7 +54,6 @@ public class VoiceStateListener extends ListenerAdapter {
             if (channel == null) {
                 VoiceRepository.deleteVoiceChannel(id);
             } else if (channel.getMembers().isEmpty()) {
-                VoiceRepository.deleteVoiceChannel(id);
                 channel.delete().queue(s -> { }, f -> { });
             }
         }
@@ -70,9 +70,7 @@ public class VoiceStateListener extends ListenerAdapter {
         String channelName = (preferredName != null && !preferredName.isBlank())
                 ? preferredName
                 : "🔊 ห้องของ " + member.getEffectiveName();
-        if (channelName.length() > 100) {
-            channelName = channelName.substring(0, 100);
-        }
+        channelName = NameUtil.limit100(channelName);
 
         guild.createVoiceChannel(channelName, category)
                 .setBitrate(joinedChannel.getBitrate())
@@ -90,7 +88,6 @@ public class VoiceStateListener extends ListenerAdapter {
                             failure -> {
                                 logger.warn("Failed to move {} into new temp voice channel, cleaning up.",
                                         member.getEffectiveName(), failure);
-                                VoiceRepository.deleteVoiceChannel(newChannel.getIdLong());
                                 newChannel.delete().queue(s -> {
                                 }, f -> {
                                 });
@@ -118,7 +115,6 @@ public class VoiceStateListener extends ListenerAdapter {
             return;
         }
 
-        VoiceRepository.deleteVoiceChannel(channelId);
         leftChannel.delete().queue(
                 success -> logger.debug("Deleted empty temp voice channel {}", channelId),
                 failure -> logger.warn("Failed to delete empty temp voice channel {}", channelId, failure));

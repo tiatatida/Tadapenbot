@@ -15,10 +15,6 @@ import java.awt.*;
 import java.time.LocalDateTime;
 
 public class ReportCommand implements Command {
-    @Override
-    public String getName() {
-        return "report";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {

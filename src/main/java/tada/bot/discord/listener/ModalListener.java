@@ -25,38 +25,30 @@ public class ModalListener extends ListenerAdapter {
         }
 
         if (modalId.startsWith(VoiceRoomUI.RENAME_MODAL_PREFIX)) {
-            long channelId = parseChannelId(modalId, VoiceRoomUI.RENAME_MODAL_PREFIX);
+            long channelId = VoiceRoomUI.parseChannelId(modalId, VoiceRoomUI.RENAME_MODAL_PREFIX);
             if (channelId != -1)
                 VoiceListener.handleRenameModalSubmit(event, guild, member, channelId);
             return;
         }
 
         if (modalId.startsWith(VoiceRoomUI.LIMIT_MODAL_PREFIX)) {
-            long channelId = parseChannelId(modalId, VoiceRoomUI.LIMIT_MODAL_PREFIX);
+            long channelId = VoiceRoomUI.parseChannelId(modalId, VoiceRoomUI.LIMIT_MODAL_PREFIX);
             if (channelId != -1)
                 VoiceListener.handleLimitModalSubmit(event, guild, member, channelId);
             return;
         }
 
         if (modalId.startsWith(VoiceRoomUI.PERMIT_MODAL_PREFIX)) {
-            long channelId = parseChannelId(modalId, VoiceRoomUI.PERMIT_MODAL_PREFIX);
+            long channelId = VoiceRoomUI.parseChannelId(modalId, VoiceRoomUI.PERMIT_MODAL_PREFIX);
             if (channelId != -1)
                 VoiceListener.handlePermitModalSubmit(event, guild, member, channelId);
             return;
         }
 
         if (modalId.startsWith(VoiceRoomUI.KICK_MODAL_PREFIX)) {
-            long channelId = parseChannelId(modalId, VoiceRoomUI.KICK_MODAL_PREFIX);
+            long channelId = VoiceRoomUI.parseChannelId(modalId, VoiceRoomUI.KICK_MODAL_PREFIX);
             if (channelId != -1)
                 VoiceListener.handleKickModalSubmit(event, guild, member, channelId);
-        }
-    }
-
-    private long parseChannelId(String id, String prefix) {
-        try {
-            return Long.parseLong(id.substring(prefix.length()));
-        } catch (NumberFormatException e) {
-            return -1;
         }
     }
 }

@@ -12,10 +12,6 @@ import java.awt.*;
 import java.time.LocalDateTime;
 
 public class ReviewCommand implements Command {
-    @Override
-    public String getName() {
-        return "review";
-    }
 
     @Override
     public void executeSlash(SlashCommandInteractionEvent event) {
@@ -63,7 +59,10 @@ public class ReviewCommand implements Command {
             return;
         }
 
-        ReviewRepository.upsertReview(guildId, reviewerId, reviewedId, (int) rating);
+        if (!ReviewRepository.upsertReview(guildId, reviewerId, reviewedId, (int) rating)) {
+            event.reply("บันทึกรีวิวไม่สำเร็จ โปรดลองใหม่อีกครั้งครับ").setEphemeral(true).queue();
+            return;
+        }
 
         ReviewRepository.ReviewStats stats = ReviewRepository.getStats(guildId, reviewedId);
 

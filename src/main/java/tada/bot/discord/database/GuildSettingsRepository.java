@@ -11,7 +11,7 @@ import java.sql.SQLException;
 public class GuildSettingsRepository {
     private static final Logger logger = LoggerFactory.getLogger(GuildSettingsRepository.class);
 
-    public static void setReportChannel(long guildId, long channelId) {
+    public static boolean setReportChannel(long guildId, long channelId) {
         String sql = """
                 INSERT INTO guild_settings (guild_id, report_channel_id)
                 VALUES (?, ?)
@@ -23,8 +23,10 @@ public class GuildSettingsRepository {
             ps.setLong(2, channelId);
             ps.setLong(3, channelId);
             ps.executeUpdate();
+            return true;
         } catch (SQLException e) {
             logger.error("Failed to set report channel for guild {}", guildId, e);
+            return false;
         }
     }
 

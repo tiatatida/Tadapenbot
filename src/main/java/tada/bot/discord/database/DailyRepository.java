@@ -70,11 +70,7 @@ public class DailyRepository {
                     return new DailyStatus(currentStreak, longestStreak, true);
                 }
 
-                if (lastCheckin != null && lastCheckin.isEqual(today.minusDays(1))) {
-                    currentStreak += 1;
-                } else {
-                    currentStreak = 1;
-                }
+                currentStreak = nextStreak(lastCheckin, today, currentStreak);
 
                 longestStreak = Math.max(longestStreak, currentStreak);
 
@@ -102,6 +98,11 @@ public class DailyRepository {
             logger.error("Failed to check in user {}", userId, e);
             return null;
         }
+    }
+
+    static int nextStreak(LocalDate lastCheckin, LocalDate today, int currentStreak) {
+        boolean continuesStreak = lastCheckin != null && lastCheckin.isEqual(today.minusDays(1));
+        return continuesStreak ? currentStreak + 1 : 1;
     }
 
     public static TopStreak getServerTopStreak(long guildId) {

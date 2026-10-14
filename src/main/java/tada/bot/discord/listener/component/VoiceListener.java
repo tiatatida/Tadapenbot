@@ -6,7 +6,6 @@ import tada.bot.discord.util.VoiceRoomUI;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -16,7 +15,6 @@ import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.modals.Modal;
-import net.dv8tion.jda.api.requests.restaction.PermissionOverrideAction;
 
 import java.util.List;
 
@@ -34,16 +32,11 @@ public class VoiceListener {
             return;
         }
 
-        Role publicRole = guild.getPublicRole();
         boolean locked = VoiceRoomUI.isLocked(voiceChannel);
 
         event.deferEdit().queue();
 
-        PermissionOverrideAction action = locked
-                ? voiceChannel.upsertPermissionOverride(publicRole).clear(Permission.VOICE_CONNECT)
-                : voiceChannel.upsertPermissionOverride(publicRole).deny(Permission.VOICE_CONNECT);
-
-        action.queue(
+        VoiceActions.publicAccess(voiceChannel, Permission.VOICE_CONNECT, !locked).queue(
                 success -> VoiceRoomUI.refreshMessage(voiceChannel),
                 failure -> {
                 });
@@ -61,16 +54,11 @@ public class VoiceListener {
             return;
         }
 
-        Role publicRole = guild.getPublicRole();
         boolean ghosted = VoiceRoomUI.isGhosted(voiceChannel);
 
         event.deferEdit().queue();
 
-        PermissionOverrideAction action = ghosted
-                ? voiceChannel.upsertPermissionOverride(publicRole).clear(Permission.VIEW_CHANNEL)
-                : voiceChannel.upsertPermissionOverride(publicRole).deny(Permission.VIEW_CHANNEL);
-
-        action.queue(
+        VoiceActions.publicAccess(voiceChannel, Permission.VIEW_CHANNEL, !ghosted).queue(
                 success -> VoiceRoomUI.refreshMessage(voiceChannel),
                 failure -> {
                 });
@@ -181,18 +169,9 @@ public class VoiceListener {
     
     public static void handleRenameModalSubmit(ModalInteractionEvent event, Guild guild, Member member,
             long channelId) {
-        event.deferReply(true).queue();
-
-        VoiceChannel voiceChannel = guild.getVoiceChannelById(channelId);
-        if (voiceChannel == null) {
-            event.getHook().editOriginal("ห้องนี้ถูกลบไปแล้วครับ").queue();
+        VoiceChannel voiceChannel = ownedRoomForModal(event, guild, member, channelId);
+        if (voiceChannel == null)
             return;
-        }
-
-        if (!VoiceRepository.isOwner(channelId, member.getIdLong())) {
-            event.getHook().editOriginal("คุณไม่ใช่เจ้าของห้องนี้แล้วครับ").queue();
-            return;
-        }
 
         ModalMapping mapping = event.getValue("name");
         String newName = mapping != null ? mapping.getAsString() : null;
@@ -202,18 +181,9 @@ public class VoiceListener {
 
     public static void handleLimitModalSubmit(ModalInteractionEvent event, Guild guild, Member member,
             long channelId) {
-        event.deferReply(true).queue();
-
-        VoiceChannel voiceChannel = guild.getVoiceChannelById(channelId);
-        if (voiceChannel == null) {
-            event.getHook().editOriginal("ห้องนี้ถูกลบไปแล้วครับ").queue();
+        VoiceChannel voiceChannel = ownedRoomForModal(event, guild, member, channelId);
+        if (voiceChannel == null)
             return;
-        }
-
-        if (!VoiceRepository.isOwner(channelId, member.getIdLong())) {
-            event.getHook().editOriginal("คุณไม่ใช่เจ้าของห้องนี้แล้วครับ").queue();
-            return;
-        }
 
         ModalMapping mapping = event.getValue("amount");
         Integer amount = null;
@@ -229,18 +199,9 @@ public class VoiceListener {
 
     public static void handlePermitModalSubmit(ModalInteractionEvent event, Guild guild, Member member,
             long channelId) {
-        event.deferReply(true).queue();
-
-        VoiceChannel voiceChannel = guild.getVoiceChannelById(channelId);
-        if (voiceChannel == null) {
-            event.getHook().editOriginal("ห้องนี้ถูกลบไปแล้วครับ").queue();
+        VoiceChannel voiceChannel = ownedRoomForModal(event, guild, member, channelId);
+        if (voiceChannel == null)
             return;
-        }
-
-        if (!VoiceRepository.isOwner(channelId, member.getIdLong())) {
-            event.getHook().editOriginal("คุณไม่ใช่เจ้าของห้องนี้แล้วครับ").queue();
-            return;
-        }
 
         Member target = extractSelectedMember(event, "user");
         VoiceActions.permit(event, voiceChannel, target);
@@ -248,21 +209,30 @@ public class VoiceListener {
 
     public static void handleKickModalSubmit(ModalInteractionEvent event, Guild guild, Member member,
             long channelId) {
+        VoiceChannel voiceChannel = ownedRoomForModal(event, guild, member, channelId);
+        if (voiceChannel == null)
+            return;
+
+        Member target = extractSelectedMember(event, "user");
+        VoiceActions.kick(event, voiceChannel, target, member.getIdLong());
+    }
+
+    private static VoiceChannel ownedRoomForModal(ModalInteractionEvent event, Guild guild, Member member,
+            long channelId) {
         event.deferReply(true).queue();
 
         VoiceChannel voiceChannel = guild.getVoiceChannelById(channelId);
         if (voiceChannel == null) {
             event.getHook().editOriginal("ห้องนี้ถูกลบไปแล้วครับ").queue();
-            return;
+            return null;
         }
 
         if (!VoiceRepository.isOwner(channelId, member.getIdLong())) {
             event.getHook().editOriginal("คุณไม่ใช่เจ้าของห้องนี้แล้วครับ").queue();
-            return;
+            return null;
         }
 
-        Member target = extractSelectedMember(event, "user");
-        VoiceActions.kick(event, voiceChannel, target, member.getIdLong());
+        return voiceChannel;
     }
 
     private static Member extractSelectedMember(ModalInteractionEvent event, String componentId) {

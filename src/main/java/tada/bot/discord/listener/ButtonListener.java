@@ -4,11 +4,28 @@ import tada.bot.discord.listener.component.DailyListener;
 import tada.bot.discord.listener.component.TicketListener;
 import tada.bot.discord.listener.component.VoiceListener;
 import tada.bot.discord.util.VoiceRoomUI;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Map;
+
 public class ButtonListener extends ListenerAdapter {
+
+    private interface VoiceButton {
+        void handle(ButtonInteractionEvent event, Guild guild, Member member, long channelId);
+    }
+
+    private static final Map<String, VoiceButton> VOICE_BUTTONS = Map.of(
+            VoiceRoomUI.LOCK_BUTTON_PREFIX, VoiceListener::handleLockToggle,
+            VoiceRoomUI.GHOST_BUTTON_PREFIX, VoiceListener::handleGhostToggle,
+            VoiceRoomUI.RENAME_BUTTON_PREFIX, VoiceListener::handleRenameButton,
+            VoiceRoomUI.LIMIT_BUTTON_PREFIX, VoiceListener::handleLimitButton,
+            VoiceRoomUI.PERMIT_BUTTON_PREFIX, VoiceListener::handlePermitButton,
+            VoiceRoomUI.KICK_BUTTON_PREFIX, VoiceListener::handleKickButton,
+            VoiceRoomUI.CLAIM_BUTTON_PREFIX, VoiceListener::handleClaimButton);
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
@@ -18,60 +35,14 @@ public class ButtonListener extends ListenerAdapter {
         var member = event.getMember();
         if (guild == null || member == null) return;
 
-        if (componentId.startsWith(VoiceRoomUI.LOCK_BUTTON_PREFIX)) {
-            long channelId = parseChannelId(componentId, VoiceRoomUI.LOCK_BUTTON_PREFIX);
-            if (channelId != -1) {
-                VoiceListener.handleLockToggle(event, guild, member, channelId);
+        for (var entry : VOICE_BUTTONS.entrySet()) {
+            if (componentId.startsWith(entry.getKey())) {
+                long channelId = VoiceRoomUI.parseChannelId(componentId, entry.getKey());
+                if (channelId != -1) {
+                    entry.getValue().handle(event, guild, member, channelId);
+                }
+                return;
             }
-            return;
-        }
-
-        if (componentId.startsWith(VoiceRoomUI.GHOST_BUTTON_PREFIX)) {
-            long channelId = parseChannelId(componentId, VoiceRoomUI.GHOST_BUTTON_PREFIX);
-            if (channelId != -1) {
-                VoiceListener.handleGhostToggle(event, guild, member, channelId);
-            }
-            return;
-        }
-
-        if (componentId.startsWith(VoiceRoomUI.RENAME_BUTTON_PREFIX)) {
-            long channelId = parseChannelId(componentId, VoiceRoomUI.RENAME_BUTTON_PREFIX);
-            if (channelId != -1) {
-                VoiceListener.handleRenameButton(event, guild, member, channelId);
-            }
-            return;
-        }
-
-        if (componentId.startsWith(VoiceRoomUI.LIMIT_BUTTON_PREFIX)) {
-            long channelId = parseChannelId(componentId, VoiceRoomUI.LIMIT_BUTTON_PREFIX);
-            if (channelId != -1) {
-                VoiceListener.handleLimitButton(event, guild, member, channelId);
-            }
-            return;
-        }
-
-        if (componentId.startsWith(VoiceRoomUI.PERMIT_BUTTON_PREFIX)) {
-            long channelId = parseChannelId(componentId, VoiceRoomUI.PERMIT_BUTTON_PREFIX);
-            if (channelId != -1) {
-                VoiceListener.handlePermitButton(event, guild, member, channelId);
-            }
-            return;
-        }
-
-        if (componentId.startsWith(VoiceRoomUI.KICK_BUTTON_PREFIX)) {
-            long channelId = parseChannelId(componentId, VoiceRoomUI.KICK_BUTTON_PREFIX);
-            if (channelId != -1) {
-                VoiceListener.handleKickButton(event, guild, member, channelId);
-            }
-            return;
-        }
-
-        if (componentId.startsWith(VoiceRoomUI.CLAIM_BUTTON_PREFIX)) {
-            long channelId = parseChannelId(componentId, VoiceRoomUI.CLAIM_BUTTON_PREFIX);
-            if (channelId != -1) {
-                VoiceListener.handleClaimButton(event, guild, member, channelId);
-            }
-            return;
         }
 
         switch (componentId) {
@@ -82,14 +53,6 @@ public class ButtonListener extends ListenerAdapter {
             case "ticketUnclaim" -> TicketListener.handleTicketUnclaim(event, guild, member);
             case "dailyConfirm" -> DailyListener.handleDailyConfirm(event, member);
             default -> { /* . */ }
-        }
-    }
-
-    private long parseChannelId(String componentId, String prefix) {
-        try {
-            return Long.parseLong(componentId.substring(prefix.length()));
-        } catch (NumberFormatException e) {
-            return -1;
         }
     }
 }

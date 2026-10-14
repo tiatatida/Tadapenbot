@@ -149,6 +149,7 @@ public class DatabaseManager {
             addColumnIfMissing(stmt, "ALTER TABLE warnings ADD COLUMN color VARCHAR(10) NOT NULL DEFAULT 'YELLOW'");
             addColumnIfMissing(stmt, "ALTER TABLE warnings ADD COLUMN expires_at TIMESTAMP NULL");
             addColumnIfMissing(stmt, "ALTER TABLE reports ADD COLUMN topic VARCHAR(255) NULL");
+            addColumnIfMissing(stmt, "ALTER TABLE daily_checkins ADD INDEX idx_top (guild_id, longest_streak)");
             logger.info("Database tables verified/created.");
         } catch (SQLException e) {
             logger.error("Failed to create tables!", e);
@@ -160,7 +161,7 @@ public class DatabaseManager {
         try {
             stmt.execute(sql);
         } catch (SQLException e) {
-            if (!"42S21".equals(e.getSQLState())) throw e;
+            if (!"42S21".equals(e.getSQLState()) && e.getErrorCode() != 1061) throw e;
         }
     }
 

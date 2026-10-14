@@ -11,7 +11,7 @@ import java.sql.SQLException;
 public class TicketRepository {
     private static final Logger logger = LoggerFactory.getLogger(TicketRepository.class);
 
-    public static void insertTicket(long channelId, long guildId, long ownerId) {
+    public static boolean insertTicket(long channelId, long guildId, long ownerId) {
         String sql = "INSERT INTO tickets (channel_id, guild_id, owner_id) VALUES (?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -19,8 +19,10 @@ public class TicketRepository {
             ps.setLong(2, guildId);
             ps.setLong(3, ownerId);
             ps.executeUpdate();
+            return true;
         } catch (SQLException e) {
             logger.error("Failed to insert ticket for channel {}", channelId, e);
+            return false;
         }
     }
 
